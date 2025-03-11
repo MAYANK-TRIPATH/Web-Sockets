@@ -8,9 +8,9 @@ wss.on("connection", function (socket) {
     socket.on("message", (e) => {
         const message = e.toString("utf8").trim();
         console.log(message);
-        console.log(message === "ping"); // Should now return true
+        console.log(message === "ping");
         if (message === "ping") {
-            socket.send("pong");
+            socket.send("bskd");
         }
     });
 });
