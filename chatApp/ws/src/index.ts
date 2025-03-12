@@ -1,42 +1,37 @@
-import { WebSocketServer, WebSocket } from "ws";
+import { WebSocket, WebSocketServer } from "ws";
 
-const wss = new WebSocketServer({port: 8080});
+const wss = new WebSocketServer({ port: 8080 });
 
 interface User {
     socket: WebSocket;
     room: string;
 }
 
-let allSockets: User[] = [];
+const users: User[] = [];
 
 wss.on("connection", (socket) => {
-        
     socket.on("message", (message) => {
-        // @ts-ignore
-        const parseMessage = JSON.parse(message);
-        if (parseMessage.type === "join") {
-            console.log("user joined the Room" + parseMessage.payload.roomId);
-            allSockets.push({
-                socket,
-                room: parseMessage.payload.roomId
-            })
-        }
+        try {
+            const parsedMessage = JSON.parse(message.toString()); // Ensure message is string
 
-        if (parseMessage.type == "chat") {
-            console.log("User wants to chat");
+            if (parsedMessage.type === "join") {
+                const roomId = parsedMessage.payload.roomId;
+                console.log(`User joined room: ${roomId}`);
 
-            let currentUserRoom = null;
-            for (let i=0; i<allSockets.length; i++) {
-                if (allSockets[i].socket == socket) {
-                    currentUserRoom = allSockets[i].room
-                }
+                users.push({ socket, room: roomId });
             }
 
-            for (let i = 0; i < allSockets.length; i++) {
-                if (allSockets[i].room == currentUserRoom) {
-                    allSockets[i].socket.send(parseMessage.payload.message)
-                }
+            if (parsedMessage.type === "chat") {
+                const user = users.find((user) => user.socket === socket);
+                if (!user) return;
+
+                console.log("Broadcasting message in room:", user.room);
+                users
+                    .filter((u) => u.room === user.room)
+                    .forEach((u) => u.socket.send(parsedMessage.payload.message));
             }
+        } catch (error) {
+            console.error("Error parsing message:", error);
         }
-    })
-})
+    });
+});
